@@ -1,0 +1,76 @@
+version: '3.7'
+
+services:
+  # auth-service:
+  #   build:
+  #     context: ./auth-service
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     - MONGO_URI=mongodb://mongo:27017/auth-service
+  #     - JWT_SECRET=your_jwt_secret
+  #   ports:
+  #     - "3001:3001"
+  #   depends_on:
+  #     mongo:
+  #       condition: service_healthy
+  #   networks:
+  #     - notification-system-network
+
+  # notification-service:
+  #   build:
+  #     context: ./notification-service
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     - MONGO_URI=mongodb://mongo:27017/notification-service
+  #     - RABBITMQ_URI=amqp://rabbitmq
+  #   ports:
+  #     - "3002:3002"
+  #   depends_on:
+  #     - mongo
+  #     - rabbitmq
+  #   networks:
+  #     - notification-system-network
+
+  # real-time-service:
+  #   build:
+  #     context: ./real-time-service
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     - RABBITMQ_URI=amqp://rabbitmq
+  #     - REAL_TIME_SERVICE_PORT=3003
+  #   ports:
+  #     - "3003:3003"
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   networks:
+  #     - notification-system-network
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD-SHELL", "mongo --eval 'db.runCommand({ ping: 1 })'"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - notification-system-network
+
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - notification-system-network
+
+networks:
+  notification-system-network:
+    driver: bridge

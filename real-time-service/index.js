@@ -1,0 +1,52 @@
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const amqp = require('amqplib/callback_api');
+require('dotenv').config();
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
+let connections = {};
+
+io.on('connection', socket => {
+    const { userId } = socket.handshake.query;
+    connections[userId] = socket.id;
+
+    socket.on('disconnect', () => {
+        delete connections[userId];
+    });
+});
+
+const connectToRabbitMQ = () => {
+    amqp.connect(process.env.RABBITMQ_URI, (err, connection) => {
+        if (err) {
+            console.error('Failed to connect to RabbitMQ:', err.message);
+            setTimeout(connectToRabbitMQ, 5000); // Retry connection after 5 seconds
+            return;
+        }
+
+        console.log('Connected to RabbitMQ');
+        connection.createChannel((err, channel) => {
+            if (err) throw err;
+            const queue = 'notifications';
+            channel.assertQueue(queue, { durable: true });
+
+            channel.consume(queue, msg => {
+                const notification = JSON.parse(msg.content.toString());
+                const socketId = connections[notification.userId];
+                if (socketId) {
+                    io.to(socketId).emit('notification', notification);
+                }
+            }, { noAck: true });
+        });
+    });
+};
+
+connectToRabbitMQ();
+
+const port = process.env.REAL_TIME_SERVICE_PORT || 3003;
+server.listen(port, () => {
+    console.log(`Real-Time Service listening on port ${port}`);
+});
