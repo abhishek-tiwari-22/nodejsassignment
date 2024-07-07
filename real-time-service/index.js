@@ -2,17 +2,27 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const amqp = require('amqplib/callback_api');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+app.use(cors());
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIo(server, {
+    cors: {
+        origin: "*", // Allow all origins. You can specify a specific origin instead of "*"
+        methods: ["GET", "POST"]
+    }
+});
 
 let connections = {};
 
 io.on('connection', socket => {
     const { userId } = socket.handshake.query;
     connections[userId] = socket.id;
+    // connections["668abe6b574500361b4f606f"] = socket.id;
+    console.log("efre", connections);
+    console.log(`User connected: ${userId}`);
 
     socket.on('disconnect', () => {
         delete connections[userId];
@@ -35,7 +45,9 @@ const connectToRabbitMQ = () => {
 
             channel.consume(queue, msg => {
                 const notification = JSON.parse(msg.content.toString());
+                console.log('Received notification:', notification);
                 const socketId = connections[notification.userId];
+                console.log('Socket ID:', socketId);
                 if (socketId) {
                     io.to(socketId).emit('notification', notification);
                 }
