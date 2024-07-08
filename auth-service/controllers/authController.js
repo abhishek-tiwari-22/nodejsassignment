@@ -18,9 +18,19 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
     try {
         const user = await User.findOne({ email });
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        console.log(user);
+
+        if (!user) {
+            console.log('User not found');
             return res.status(401).send('Invalid credentials');
         }
+
+        const isPasswordMatch = await bcrypt.compare(password, user.password);
+        if (isPasswordMatch) {
+            console.log('Password does not match');
+            return res.status(401).send('Invalid credentials');
+        }
+
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
         res.send({ token });
     } catch (err) {

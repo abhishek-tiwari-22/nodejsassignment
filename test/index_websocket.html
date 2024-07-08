@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        const socket = io('http://localhost:3003', {
+            query: { userId: '668abe6b574500361b4f606f' }
+        });
+
+        socket.on('notification', notification => {
+            console.log('Received notification:', notification);
+        });
+    </script>
+</body>
+
+</html>

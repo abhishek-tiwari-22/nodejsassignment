@@ -54,7 +54,7 @@ typings/
 
 # Output of 'npm pack'
 *.tgz
-
+.history
 # dotenv environment variable files
 .env
 .env.test
